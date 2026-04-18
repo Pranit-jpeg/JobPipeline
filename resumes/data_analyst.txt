@@ -1,0 +1,57 @@
+PRANIT CHOUDHARY
+linkedin.com/in/pranit-choudhary | Choudhary.pra@northeastern.edu | (617) 438-8770 | Boston, MA | github.com/Pranit-jpeg
+
+PROFESSIONAL SUMMARY
+Economics graduate with strong quantitative skills in statistical modeling, large-scale data analysis, and visualization. Experienced in processing complex administrative datasets in R, with expertise in Python ML and Tableau dashboarding. Comfortable across the full analytical pipeline — from data wrangling and modeling to communicating findings to non-technical audiences.
+
+WORK EXPERIENCE
+
+City of Boston – DOIT, Boston, MA | Sep 2025 – Dec 2025
+Research & Evaluation Fellow
+– Processed and modeled 1M+ stop-level ridership observations in R across 145+ MBTA bus routes (2017–2024); implemented a DiD estimator and applied k-means clustering to rider survey data to identify equity-relevant rider segments.
+– Engineered a student-by-month panel from raw administrative records; estimated a DiD model with triple interaction terms for program evaluation.
+– Aggregated BLS labor market data across 6 metros; visualized employment and wage trends in an analytical deck for city reporting.
+
+Circadian Connect, Mumbai, India | Feb 2024 – May 2024
+Research Intern
+– Designed an automated data pipeline (Google Alerts-to-Sheets) tracking 5 research domains, eliminating 10+ hours/week of manual data collection.
+– Synthesized 30+ academic papers on Digital Financial Inclusion across 7 Global South economies into a policy brief for a paid Kolabtree engagement.
+– Co-developed data frameworks for 4 government tender proposals, including quantitative needs assessments and measurable performance indicators.
+
+Aditya Process, Mumbai, India | May 2023 – Jan 2024
+Operations Head
+– Conducted an internal audit identifying P&L discrepancies; implemented data tracking and compliance protocols to eliminate reporting gaps.
+– Managed operational data across inventory, AP/AR, and vendor records for 25+ staff; maintained Excel-based tracking for budget and procurement.
+– Performed profit margin analysis across B2B contracts, identifying pricing opportunities contributing to a 15% increase in annual revenue.
+
+Pratham Foundation, Remote | Sep 2021 – Oct 2021
+Communications Consultant
+– Administered 100+ structured household surveys using Pratham's ASER framework; compiled primary field data for national policy reporting.
+
+ACADEMIC PROJECTS  |  github.com/Pranit-jpeg
+
+Unsupervised ML & Data Mining | Northeastern University
+– K-means, DBSCAN, PCA, t-SNE, UMAP, neural nets on MNIST/20Newsgroups; LDA/NMF topic modeling, Word2Vec, collaborative filtering, MCMC sampling.
+
+Applied Data Analytics for Economics | Northeastern University
+– Replicated Card (1990) and RDD studies; regression, logistic, decision trees, BLP demand estimation; web scraping (BeautifulSoup/Selenium).
+
+Computation & Visualization | Northeastern University
+– Dashboards with Matplotlib, Seaborn, Plotly, Altair; OpenCV image processing; visualization critique and storytelling.
+
+EDUCATION
+
+Northeastern University, Boston, MA | Sep 2024 – May 2026
+M.S. Economics | Minor: Data Science | GPA: 3.389
+Courses: Unsupervised ML & Data Mining, Data Analytics, Data Computation & Visualization, Econometrics.
+Research: "Demographics and Real Interest Rates Across Countries and Over Time" (Carvalho et al., 2025)
+
+NMIMS, Mumbai, India | Aug 2020 – Apr 2023
+BSc Economics | Minor: Finance
+Courses: Econometrics, Statistics, Mathematical Economics, Financial Economics.
+Research: "Global Economic Downturn of 2007" (2022); "Economics of Disasters" (2021)
+
+SKILLS
+Analytical: Statistical modeling, data wrangling, EDA, ML (K-means, DBSCAN, PCA, t-SNE, UMAP, neural networks), NLP (topic modeling, word embeddings), causal inference (DiD, IV, RD, PSM), panel data, time series, recommender systems, web scraping, visualization, predictive modeling.
+Tools: R (primary), Python (scikit-learn, NumPy, pandas, Matplotlib, Seaborn, Plotly, Altair, OpenCV, gensim, NetworkX, BeautifulSoup, Selenium), Tableau, Excel (advanced), Stata.
+Languages: English, Hindi, Gujarati; learning Spanish via Duolingo.

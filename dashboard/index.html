@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JobPipeline — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ── Header ── -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-mark">JP</div>
+      <span class="brand-name">JobPipeline</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat">
+        <span class="stat-num" id="statTotal">—</span>
+        <span class="stat-lbl">Total Jobs</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat">
+        <span class="stat-num" id="statApplied">—</span>
+        <span class="stat-lbl">Applied</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat">
+        <span class="stat-num" id="statInterviews">—</span>
+        <span class="stat-lbl">Interviews</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat">
+        <span class="stat-num" id="statRate">—</span>
+        <span class="stat-lbl">Response Rate</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat stat-last">
+        <span class="stat-num" id="statLastScraped">—</span>
+        <span class="stat-lbl">Last Scraped</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Toolbar ── -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <div class="search-wrap">
+        <svg class="search-ico" viewBox="0 0 18 18" fill="none">
+          <circle cx="7.5" cy="7.5" r="5" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M11.5 11.5L16 16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        </svg>
+        <input id="searchInput" type="text" placeholder="Search title, company, location…" class="search-input" autocomplete="off">
+      </div>
+      <select id="sourceFilter" class="sel">
+        <option value="">All Sources</option>
+      </select>
+      <select id="resumeFilter" class="sel">
+        <option value="">All Resume Types</option>
+        <option value="EconPolicy">Econ / Policy</option>
+        <option value="FinanceConsulting">Finance / Consulting</option>
+        <option value="DataAnalyst">Data Analyst</option>
+        <option value="ResearchAnalyst">Research Analyst</option>
+      </select>
+    </div>
+    <button class="btn-primary" id="addJobBtn">
+      <svg viewBox="0 0 14 14" fill="currentColor"><path d="M7 1a.75.75 0 01.75.75v4.5h4.5a.75.75 0 010 1.5h-4.5v4.5a.75.75 0 01-1.5 0v-4.5H1.75a.75.75 0 010-1.5h4.5V1.75A.75.75 0 017 1z"/></svg>
+      Add Job
+    </button>
+  </div>
+
+  <!-- ── Board ── -->
+  <main class="board" id="board"></main>
+
+  <!-- ── Job Detail Modal ── -->
+  <div class="overlay" id="jobOverlay" hidden>
+    <div class="modal" id="jobModal">
+      <button class="modal-x" id="jobModalClose">✕</button>
+      <div class="modal-head">
+        <div class="modal-title-block">
+          <h2 class="modal-title" id="mTitle">—</h2>
+          <p class="modal-sub"><span id="mCompany">—</span><span class="dot-sep">·</span><span id="mLocation">—</span></p>
+        </div>
+        <a class="btn-open" id="mOpenLink" href="#" target="_blank" rel="noopener noreferrer">Open ↗</a>
+      </div>
+      <div class="modal-chips" id="mChips"></div>
+      <div class="modal-salary" id="mSalary" hidden></div>
+      <div class="modal-form">
+        <div class="f-row">
+          <div class="f-group">
+            <label>Status</label>
+            <select id="eStatus" class="f-ctrl">
+              <option>New</option><option>Interested</option><option>Applied</option>
+              <option>Interview</option><option>Offer</option><option>Rejected</option><option>Skipped</option>
+            </select>
+          </div>
+          <div class="f-group">
+            <label>Resume Version</label>
+            <select id="eResume" class="f-ctrl">
+              <option value="">— Unassigned —</option>
+              <option value="EconPolicy">Econ / Policy</option>
+              <option value="FinanceConsulting">Finance / Consulting</option>
+              <option value="DataAnalyst">Data Analyst</option>
+              <option value="ResearchAnalyst">Research Analyst</option>
+            </select>
+          </div>
+        </div>
+        <div class="f-row">
+          <div class="f-group">
+            <label>Date Applied</label>
+            <input type="date" id="eDateApplied" class="f-ctrl">
+          </div>
+          <div class="f-group">
+            <label>H-1B Sponsor Status</label>
+            <select id="eH1b" class="f-ctrl">
+              <option value="Unknown">Unknown</option>
+              <option value="Known Sponsor">Known Sponsor</option>
+            </select>
+          </div>
+        </div>
+        <div class="f-group">
+          <label>Notes</label>
+          <textarea id="eNotes" class="f-ctrl f-textarea" placeholder="Add notes, contacts, deadlines…"></textarea>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-del" id="btnDelete">Delete</button>
+        <button class="btn-tailor" id="btnTailor">✦ Tailor &amp; Cover Letter</button>
+        <button class="btn-primary" id="btnSave">Save Changes</button>
+      </div>
+      <div class="save-toast" id="saveToast">Saved ✓</div>
+    </div>
+  </div>
+
+  <!-- ── Tailor & Cover Letter Modal ── -->
+  <div class="overlay tailor-overlay" id="tailorOverlay" hidden>
+    <div class="modal modal-lg" id="tailorModal">
+      <button class="modal-x" id="tailorModalClose">✕</button>
+      <div class="modal-head">
+        <div class="modal-title-block">
+          <h2 class="modal-title">Tailor &amp; Cover Letter</h2>
+          <p class="modal-sub" id="tJobName">—</p>
+        </div>
+        <span class="rv-badge" id="tResumeBadge">—</span>
+      </div>
+
+      <div class="tailor-loading" id="tailorLoading">
+        <div class="tailor-spinner"></div>
+        <p>Generating with Claude Sonnet…</p>
+      </div>
+
+      <div id="tailorContent" hidden>
+        <div class="tailor-section">
+          <h3 class="tailor-section-title">Keywords to Add to Resume</h3>
+          <div id="tKeywords" class="tailor-keywords"></div>
+        </div>
+        <div class="tailor-section">
+          <div class="tailor-section-head">
+            <h3 class="tailor-section-title">Cover Letter</h3>
+            <button class="btn-copy" id="btnCopyCL">Copy</button>
+          </div>
+          <div id="tCoverLetter" class="tailor-cl"></div>
+        </div>
+      </div>
+
+      <div class="tailor-error" id="tailorError" hidden></div>
+    </div>
+  </div>
+
+  <!-- ── Add Job Modal ── -->
+  <div class="overlay" id="addOverlay" hidden>
+    <div class="modal modal-sm" id="addModal">
+      <button class="modal-x" id="addModalClose">✕</button>
+      <div class="modal-head">
+        <div class="modal-title-block"><h2 class="modal-title">Add Job Manually</h2></div>
+      </div>
+      <div class="modal-form" style="padding-top:4px">
+        <div class="f-group">
+          <label>Job Title <span class="req">*</span></label>
+          <input type="text" id="aTitle" class="f-ctrl" placeholder="e.g. Research Analyst">
+        </div>
+        <div class="f-row">
+          <div class="f-group">
+            <label>Company <span class="req">*</span></label>
+            <input type="text" id="aCompany" class="f-ctrl" placeholder="e.g. Brookings">
+          </div>
+          <div class="f-group">
+            <label>Location <span class="req">*</span></label>
+            <input type="text" id="aLocation" class="f-ctrl" placeholder="e.g. Washington, DC">
+          </div>
+        </div>
+        <div class="f-group">
+          <label>Job URL <span class="req">*</span></label>
+          <input type="url" id="aUrl" class="f-ctrl" placeholder="https://…">
+        </div>
+        <div class="f-group">
+          <label>Salary <span class="opt">(optional)</span></label>
+          <input type="text" id="aSalary" class="f-ctrl" placeholder="e.g. $65,000–$85,000">
+        </div>
+        <div class="add-err" id="addErr" hidden></div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-primary" id="btnAddSubmit">Add to Pipeline</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

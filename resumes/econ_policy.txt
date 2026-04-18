@@ -1,0 +1,46 @@
+PRANIT CHOUDHARY
+linkedin.com/in/pranit-choudhary | Choudhary.pra@northeastern.edu | (617) 438-8770 | Boston, MA | github.com/Pranit-jpeg
+
+PROFESSIONAL SUMMARY
+Economics graduate with hands-on experience in policy evaluation, causal inference, and public sector research. Contributed to transit equity and labor market analysis for the City of Boston, translating large-scale administrative data into insights for government decision-making. Seeking to support evidence-based policymaking through rigorous quantitative analysis and clear communication of findings to non-technical stakeholders.
+
+WORK EXPERIENCE
+
+City of Boston – DOIT, Boston, MA | Sep 2025 – Dec 2025
+Research & Evaluation Fellow
+– Contributed to the analysis of 1M+ stop-level ridership observations across 145+ MBTA bus routes (2017–2024); developed a Difference-in-Differences framework to evaluate the fare-free bus pilot (Routes 23, 28, 29), with findings supporting ongoing city transit equity deliberations.
+– Built a student-by-month administrative panel and applied a DiD specification with triple interaction terms to test for a chilling effect on Boston Family Days participation; identified directional evidence of under-participation among East Boston and non-English-speaking households, flagged for equity policy review.
+– Benchmarked Boston's labor-market performance against 6 peer metros (NYC, SF, Seattle, Chicago, Austin, DC) using BLS employment and wage data; produced a chart-driven analytical deck for the city's economic outlook reporting to senior officials.
+
+Circadian Connect, Mumbai, India | Feb 2024 – May 2024
+Research Intern
+– Co-authored an evidence-based policy brief on Digital Financial Inclusion of Women across 7 Global South economies for a paid Kolabtree engagement; conducted a systematic literature review of 30+ academic sources using Zotero.
+– Designed an automated research monitoring pipeline (Google Alerts-to-Sheets) tracking policy developments across 5 domains for a global think tank client, reducing manual desk research by 10+ hours/week.
+– Co-developed 4 technical proposals for government STEM tenders, incorporating policy needs assessments, program logic frameworks, and measurable performance metrics; advanced to Round 2 for a neonatal health initiative targeting underserved regions.
+
+Aditya Process, Mumbai, India | May 2023 – Jan 2024
+Operations Head
+– Conducted an internal operational audit within 2 months of assuming oversight; identified unrecorded production lots and P&L discrepancies, remediated the issue, and implemented compliance and reporting protocols.
+– Managed day-to-day operations and vendor coordination for 25+ staff; oversaw budget management and accounts payable/receivable for clients including Pepe Jeans and D-mart India.
+– Acquired 3+ new B2B clients through contract negotiation and profitability analysis, contributing to a 15% increase in annual revenue.
+
+Pratham Foundation, Remote | Sep 2021 – Oct 2021
+Communications Consultant
+– Administered 100+ structured household surveys across Uttar Pradesh using Pratham's ASER methodology to evaluate COVID-era education access; contributed primary field data to national policy findings on learning outcomes.
+
+EDUCATION
+
+Northeastern University, Boston, MA | Sep 2024 – May 2026
+M.S. Economics | Minor: Data Science | GPA: 3.389
+Courses: Macroeconomic Theory, Econometrics, Public Finance & Policy, Mathematics & Statistics for Economics, Data Analytics.
+Research: "Demographics and Real Interest Rates Across Countries and Over Time" (Carvalho et al., 2025)
+
+NMIMS, Mumbai, India | Aug 2020 – Apr 2023
+BSc Economics | Minor: Finance
+Courses: Macroeconomic Theory, International Economics, Public Finance & Policy, Behavioral Economics.
+Research: "Global Economic Downturn of 2007" (2022); "Economics of Disasters" (2021)
+
+SKILLS
+Analytical: Policy evaluation, program evaluation, causal inference (DiD, IV, RD, PSM), econometric modeling, panel data analysis, cost-benefit analysis, stakeholder reporting, survey design, mixed-methods research, policy memo writing.
+Tools: R, Stata, Python, Tableau, Microsoft Excel (advanced), Zotero.
+Languages: English, Hindi, Gujarati; learning Spanish via Duolingo.
