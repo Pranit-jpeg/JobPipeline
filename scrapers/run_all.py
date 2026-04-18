@@ -7,71 +7,58 @@ import sys, os, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import db
-from scrapers.fed_boston import FedReserveScraper
+
+# ── Active scrapers: corporate employers that sponsor H-1B ────────────────────
+# Dropped (files kept for reference, not imported):
+#   • Government (visa dead-ends, require US citizenship):
+#     usajobs, treasury, usda_ers, mass_gov, nyc_gov
+#   • Academic (not corporate per current career focus):
+#     predoc, harvard, mit, stanford, uchicago, bfi, jpab
+#   • Blocks headless browsers:
+#     goldman, microsoft
+
+from scrapers.fed_boston import FedReserveScraper   # quasi-private, occasional sponsorship
 from scrapers.urban_institute import UrbanInstituteScraper
 from scrapers.rand import RandScraper
 from scrapers.brookings import BrookingsScraper
 from scrapers.mathematica import MathematicaScraper
 from scrapers.abt import AbtScraper
-from scrapers.usajobs import USAJobsScraper
-from scrapers.nyc_gov import NYCGovScraper
-from scrapers.mass_gov import MassGovScraper
 from scrapers.amazon import AmazonScraper
 from scrapers.google import GoogleScraper
 from scrapers.jpmorgan import JPMorganScraper
 from scrapers.moodys import MoodyScraper
 from scrapers.sp_global import SPGlobalScraper
-# ── New scrapers from friend's list ──────────────────────────────────────────
-from scrapers.treasury import TreasuryScraper
-from scrapers.usda_ers import USDAScraper
 from scrapers.cornerstone import CornerstoneScraper
-from scrapers.uchicago import UChicagoScraper
-from scrapers.bfi import BFIScraper
 from scrapers.aei import AEIScraper
 from scrapers.brattle import BrattleScraper
 from scrapers.cra import CRAScraper
-from scrapers.jpab import JPALScraper
-from scrapers.predoc import PredocScraper
-from scrapers.harvard import HarvardScraper
-# GoldmanSachsScraper — blocks headless browsers, skipped
-# MicrosoftScraper — blocks headless browsers, skipped
 from scrapers.nera import NERAScraper
 from scrapers.compass_lexecon import CompassLexeconScraper
-from scrapers.mit import MITScraper
-from scrapers.stanford import StanfordScraper
+from scrapers.analysis_group import AnalysisGroupScraper
 
 SCRAPERS = [
-    # ── Original scrapers ─────────────────────────────────────────────────────
+    # ── Policy / research firms (some H-1B sponsorship) ──────────────────────
     FedReserveScraper,
     UrbanInstituteScraper,
     RandScraper,
     BrookingsScraper,
     MathematicaScraper,
     AbtScraper,
-    USAJobsScraper,
-    NYCGovScraper,
-    MassGovScraper,
+    AEIScraper,
+    # ── Tech (H-1B sponsors) ─────────────────────────────────────────────────
     AmazonScraper,
     GoogleScraper,
+    # ── Finance research (H-1B sponsors) ─────────────────────────────────────
     JPMorganScraper,
     MoodyScraper,
     SPGlobalScraper,
-    # ── New scrapers ──────────────────────────────────────────────────────────
-    TreasuryScraper,
-    USDAScraper,
-    CornerstoneScraper,
-    UChicagoScraper,
-    BFIScraper,
-    AEIScraper,
+    # ── Economic consulting (strong H-1B sponsors, prime lane) ───────────────
+    AnalysisGroupScraper,
     BrattleScraper,
-    CRAScraper,
-    JPALScraper,
-    PredocScraper,
-    HarvardScraper,
     NERAScraper,
     CompassLexeconScraper,
-    MITScraper,
-    StanfordScraper,
+    CRAScraper,
+    CornerstoneScraper,
 ]
 
 

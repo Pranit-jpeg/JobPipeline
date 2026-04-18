@@ -38,6 +38,35 @@ def is_entry_level(title: str) -> bool:
     return not any(term in t for term in _EXCLUDE_TERMS)
 
 
+# Substrings that mark a title as topically relevant to Pranit's target roles.
+# Only titles containing at least one of these make it into the pipeline —
+# stops the LLM from wasting credits scoring obviously off-topic postings
+# (e.g. Amazon Supply Chain Ops Analyst, Google Trust & Safety Specialist).
+_INCLUDE_TERMS = [
+    "economist", "economic",     # covers "Economic Analyst", "Economics Research"
+    "analyst", "analytics",
+    "research",                   # covers Research Associate / Assistant / Fellow / Scientist
+    "policy",
+    "data ",                      # trailing space avoids matching "metadata"
+    " data,",
+    "quantitative", "quant ",
+    "statistician",
+    "consultant", "consulting",
+    "fellow",                     # research fellow, policy fellow
+    "econ ", " econ,",            # short form when full word absent
+    "associate",                  # research associate, consulting associate
+    "intern",                     # many policy/research internships still fit
+    "scientist",                  # applied scientist, data scientist, research scientist
+    "predoctoral", "pre-doctoral", "doctoral",
+]
+
+
+def matches_target_role(title: str) -> bool:
+    """Return True if the title contains at least one target-role keyword."""
+    t = f" {title.lower()} "
+    return any(term in t for term in _INCLUDE_TERMS)
+
+
 def _parse_date_posted(s):
     """Parse a date/datetime string to a UTC-aware datetime, or None on failure."""
     if not s:
@@ -106,15 +135,20 @@ class BaseScraper:
             print(f"[{self.SOURCE}] ERROR: {e}")
             return 0
 
-        skipped_senior = 0
-        skipped_stale  = 0
-        new_count      = 0
+        skipped_senior   = 0
+        skipped_offtopic = 0
+        skipped_stale    = 0
+        new_count        = 0
 
         for job in jobs:
             title = job["title"]
 
             if not is_entry_level(title):
                 skipped_senior += 1
+                continue
+
+            if not matches_target_role(title):
+                skipped_offtopic += 1
                 continue
 
             date_posted = job.get("date_posted")
@@ -140,8 +174,8 @@ class BaseScraper:
 
         print(
             f"[{self.SOURCE}] Done — {new_count} new job(s) added "
-            f"({len(jobs)} found, {skipped_senior} senior filtered, "
-            f"{skipped_stale} stale filtered)."
+            f"({len(jobs)} found, {skipped_senior} senior, "
+            f"{skipped_offtopic} off-topic, {skipped_stale} stale)."
         )
         return new_count
 
