@@ -16,6 +16,7 @@ import requests
 from bs4 import BeautifulSoup
 import anthropic
 import db
+from profile import PROFILE
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -82,9 +83,16 @@ def score_job(client, job, resumes):
         f"[{key}]\n{text}" for key, text in resumes.items()
     )
 
-    prompt = f"""You are a career advisor helping a recent economics graduate (MS Economics, May 2026, 19 months experience, F-1/OPT visa) find the best-fit entry-level jobs.
+    scoring = PROFILE["scoring"]
+    prompt = f"""You are a career advisor helping a recent graduate find the best-fit entry-level jobs.
 
-Evaluate how well each resume matches the job below. Consider: skill overlap, relevant experience, industry fit, and keyword alignment.
+CANDIDATE: {scoring["candidate_summary"]}
+
+{scoring["location_preferences"]}
+
+{scoring["hard_disqualifiers"]}
+
+Evaluate resume fit (skill overlap, relevant experience, industry fit, keywords), apply the location penalty if applicable, then return final score.
 
 JOB:
 {job_context}
@@ -94,26 +102,34 @@ RESUMES:
 
 Respond with ONLY valid JSON — no extra text:
 {{
-  "best_resume": "<one of: EconPolicy, FinanceConsulting, DataAnalyst, ResearchAnalyst>",
-  "score": <integer 0-100 representing match quality of the best resume>,
-  "reasoning": "<one sentence>"
+  "best_resume": "<one of: {", ".join(RESUME_FILES.keys())}>",
+  "country": "<one of: {scoring["country_codes"]}>",
+  "score": <integer 0-100, already reflecting the secondary-country penalty if applicable>,
+  "disqualified": <true or false>,
+  "reasoning": "<one sentence; if disqualified, state which rule applied>"
 }}"""
 
     for attempt in range(2):
         try:
             resp = client.messages.create(
                 model=MODEL,
-                max_tokens=150,
+                max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
             )
             raw = resp.content[0].text.strip()
             start, end = raw.find("{"), raw.rfind("}") + 1
             if start >= 0 and end > start:
                 data = json.loads(raw[start:end])
+                score = max(0, min(100, int(data["score"])))
+                disqualified = bool(data.get("disqualified", False))
+                if disqualified:
+                    score = min(score, 20)
                 return {
-                    "score":       max(0, min(100, int(data["score"]))),
-                    "best_resume": data.get("best_resume", ""),
-                    "reasoning":   data.get("reasoning", ""),
+                    "score":        score,
+                    "best_resume":  data.get("best_resume", ""),
+                    "country":      data.get("country", ""),
+                    "disqualified": disqualified,
+                    "reasoning":    data.get("reasoning", ""),
                 }
         except Exception as e:
             if attempt == 0:

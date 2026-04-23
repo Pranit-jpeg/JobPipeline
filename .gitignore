@@ -36,3 +36,17 @@ desktop.ini
 dashboard/node_modules/
 dashboard/.next/
 dashboard/dist/
+
+# Resumes — contain personal info, kept local only
+resumes/*.pdf
+resumes/*.txt
+
+# Local-only parts of the resume-tailoring tool
+generation/humanizer.py
+profile.json
+
+# Generated application packets (build artifacts with PII)
+generated/
+
+# Local planning / workflow notes
+docs/GITHUB_UPLOAD_PROMPTS.md

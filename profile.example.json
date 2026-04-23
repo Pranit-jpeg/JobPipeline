@@ -1,0 +1,17 @@
+{
+  "name": "Your Name",
+  "contact_line": "LinkedIn | your_email@example.com | (000) 000-0000 | City, State | GitHub",
+  "linkedin_url": "https://www.linkedin.com/in/your-handle",
+  "github_url": "https://github.com/your-handle",
+  "school": "Your University",
+  "program": "your graduate program",
+  "grad_date": "Month YYYY",
+  "work_authorization": "your work-authorization status (e.g. US citizen, F-1/OPT, etc.)",
+  "base_location": "City, State",
+  "scoring": {
+    "candidate_summary": "Short one-line summary of who you are from a hiring lens — e.g. 'US citizen, MS Statistics graduating Dec 2026, 2 years of prior experience.' Kept short so the model has context without being overwhelmed.",
+    "location_preferences": "LOCATION PREFERENCE HIERARCHY (apply BEFORE scoring fit):\n  1. <primary country> — PRIMARY target. Score fit normally.\n  2. <secondary countries, if any> — SECONDARY. Apply a point penalty (e.g. -15) to reflect lower priority.\n  3. <conditional countries> — conditional rules (e.g. minimum salary threshold).\n  4. Any other country — DISQUALIFIED.",
+    "hard_disqualifiers": "HARD DISQUALIFIERS — if ANY apply, set \"disqualified\": true and score ≤ 20:\n  • <add your own disqualifiers>\n  • e.g. PhD required, 5+ years required, senior/staff/principal level, out-of-preference country, etc.",
+    "country_codes": "Comma-separated country codes used in the JSON output field 'country' — e.g. 'US, UK, OTHER'."
+  }
+}
