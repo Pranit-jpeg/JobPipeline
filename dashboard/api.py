@@ -15,47 +15,14 @@ Run:  python dashboard/api.py
 import sys, os, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, send_file
 import db
 
 from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env"))
 
-import anthropic
-import requests as _requests
-from bs4 import BeautifulSoup
-
-_RESUME_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "resumes")
-_RESUME_FILES = {
-    "EconPolicy":        "econ_policy.txt",
-    "FinanceConsulting": "finance_consulting.txt",
-    "DataAnalyst":       "data_analyst.txt",
-    "ResearchAnalyst":   "research_analyst.txt",
-}
-
-def _fetch_jd(url):
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = _requests.get(url, headers=headers, timeout=12, allow_redirects=True)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
-            tag.decompose()
-        lines = [ln.strip() for ln in soup.get_text(separator="\n").splitlines() if ln.strip()]
-        return "\n".join(lines)[:5000]
-    except Exception:
-        return ""
-
-def _load_resume(rv_key):
-    filename = _RESUME_FILES.get(rv_key)
-    if not filename:
-        return None
-    path = os.path.join(_RESUME_DIR, filename)
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return f.read().strip()
-    except Exception:
-        return None
+from generation import generate_application
+from generation.utils import GENERATED_DIR
 
 app = Flask(__name__)
 app.config["JSON_SORT_KEYS"] = False
@@ -171,12 +138,20 @@ def update_job(job_id):
 
 
 # ── DELETE /api/jobs/<id> ─────────────────────────────────────────────────────
+#
+# Soft-delete: mark the job as 'Dismissed' instead of removing the row.
+# Keeping the row preserves the UNIQUE(url) constraint, so the next scrape
+# won't re-surface a job the user already rejected. Hard-delete can be forced
+# with ?hard=1 for admin use.
 
 @app.route("/api/jobs/<int:job_id>", methods=["DELETE"])
 def delete_job(job_id):
     _job_or_404(job_id)
-    db.delete_job(job_id)
-    return _ok(message=f"Job {job_id} deleted.")
+    if request.args.get("hard") == "1":
+        db.delete_job(job_id)
+        return _ok(message=f"Job {job_id} permanently deleted.")
+    db.update_job(job_id, status="Dismissed")
+    return _ok(message=f"Job {job_id} dismissed.")
 
 
 # ── GET /api/stats ────────────────────────────────────────────────────────────
@@ -196,8 +171,9 @@ def get_stats():
             by_resume[k] = v
 
     all_jobs   = db.list_jobs()
-    applied    = [j for j in all_jobs if j["status"] in ("Applied", "Interview", "Offer")]
-    interviews = [j for j in all_jobs if j["status"] == "Interview"]
+    active     = [j for j in all_jobs if j["status"] != "Dismissed"]
+    applied    = [j for j in active if j["status"] in ("Applied", "Interview", "Offer")]
+    interviews = [j for j in active if j["status"] == "Interview"]
     response_rate = (
         round(len(interviews) / len(applied) * 100, 1) if applied else 0.0
     )
@@ -205,7 +181,7 @@ def get_stats():
     return _ok({
         "by_status":         by_status,
         "by_resume_version": by_resume,
-        "total_jobs":        len(all_jobs),
+        "total_jobs":        len(active),
         "applied_count":     len(applied),
         "interview_count":   len(interviews),
         "response_rate":     response_rate,
@@ -213,85 +189,54 @@ def get_stats():
     })
 
 
-# ── POST /api/jobs/<id>/tailor ────────────────────────────────────────────────
+# ── POST /api/jobs/<id>/generate ──────────────────────────────────────────────
 
-@app.route("/api/jobs/<int:job_id>/tailor", methods=["POST", "OPTIONS"])
-def tailor_job(job_id):
+@app.route("/api/jobs/<int:job_id>/generate", methods=["POST", "OPTIONS"])
+def generate_for_job(job_id):
     if request.method == "OPTIONS":
         return _ok()
     job = _job_or_404(job_id)
-
-    # Prefer user-set resume version, then AI-matched, then default
-    rv = job.get("resume_version") or job.get("matched_resume") or "ResearchAnalyst"
-
-    resume_text = _load_resume(rv)
-    if not resume_text:
-        abort(400, description=f"Resume file for '{rv}' not found.")
-
-    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        abort(500, description="ANTHROPIC_API_KEY not configured on the server.")
-
-    description = _fetch_jd(job.get("url", ""))
-
-    job_context = (
-        f"Job Title: {job['title']}\n"
-        f"Company: {job['company']}\n"
-        f"Location: {job.get('location', '')}"
-    )
-    if description:
-        job_context += f"\n\nJob Description:\n{description}"
-    else:
-        job_context += "\n\n(Job description unavailable — working from title and company only.)"
-
-    prompt = f"""You are helping a recent MS Economics graduate (F-1/OPT, graduating May 2026, ~19 months total work experience) tailor their resume and write a cover letter for a specific job.
-
-JOB:
-{job_context}
-
-RESUME ({rv}):
-{resume_text[:3500]}
-
-TASK 1 — KEYWORD SUGGESTIONS:
-Identify 5-6 specific keywords or phrases from the job description that are absent or under-represented in the resume. For each one, suggest exactly where and how to weave it into an existing bullet (reference the role/bullet specifically). Be concrete and actionable — no vague advice.
-
-TASK 2 — COVER LETTER:
-Write a professional cover letter (~250 words, 3 paragraphs). Hard rules:
-- Do NOT open with "I" as the first word
-- Do NOT use "excited", "thrilled", "passionate", or "perfect fit"
-- Lead with a specific accomplishment or skill match, not a story about yourself
-- Reference concrete details from the job posting (specific tools, team focus, mission)
-- Sound like a thoughtful human, not a template
-- Tone: confident, direct, professional — not stiff or formal
-- End with a brief, non-pushy call to action
-- Sign off as: Pranit Choudhary
-
-Respond ONLY with valid JSON and no extra text:
-{{
-  "resume_version": "{rv}",
-  "keywords": [
-    {{"phrase": "...", "suggestion": "..."}}
-  ],
-  "cover_letter": "full cover letter text here, with \\n for paragraph breaks"
-}}"""
-
     try:
-        client = anthropic.Anthropic(api_key=api_key)
-        resp = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1800,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = resp.content[0].text.strip()
-        start, end = raw.find("{"), raw.rfind("}") + 1
-        if start >= 0 and end > start:
-            data = json.loads(raw[start:end])
-            return _ok(data)
-        abort(500, description="Malformed AI response — could not parse JSON.")
-    except anthropic.APIError as e:
-        abort(500, description=f"Claude API error: {e}")
-    except json.JSONDecodeError as e:
-        abort(500, description=f"JSON parse error: {e}")
+        result = generate_application(job)
+    except FileNotFoundError as e:
+        abort(400, description=str(e))
+    except RuntimeError as e:
+        abort(500, description=str(e))
+    except Exception as e:
+        abort(500, description=f"Generation failed: {e}")
+
+    def _rel(p):
+        if not p:
+            return None
+        return os.path.relpath(p, GENERATED_DIR).replace("\\", "/")
+
+    return _ok({
+        "resume_version": result["resume_version"],
+        "body_ordering": result["body_ordering"],
+        "used_passion_statement": result["used_passion_statement"],
+        "changes_summary": result.get("changes_summary", []),
+        "resume_tightness": result.get("resume_tightness", 0),
+        "cover_letter_tightness": result.get("cover_letter_tightness", 0),
+        "cover_letter_preview": result["cover_letter_preview"],
+        "resume_pdf_rel": _rel(result["resume_pdf"]),
+        "cover_letter_pdf_rel": _rel(result["cover_letter_pdf"]),
+        "resume_docx_rel": _rel(result["resume_docx"]),
+        "cover_letter_docx_rel": _rel(result["cover_letter_docx"]),
+        "pdf_error": result["pdf_error"],
+    })
+
+
+# ── GET /api/generated/<path> — serve the produced files ─────────────────────
+
+@app.route("/api/generated/<path:relpath>", methods=["GET"])
+def serve_generated(relpath):
+    abs_path = os.path.abspath(os.path.join(GENERATED_DIR, relpath))
+    # Path-traversal guard: must stay inside GENERATED_DIR
+    if not abs_path.startswith(os.path.abspath(GENERATED_DIR) + os.sep):
+        abort(403)
+    if not os.path.isfile(abs_path):
+        abort(404)
+    return send_file(abs_path, as_attachment=True)
 
 
 # ── error handlers ────────────────────────────────────────────────────────────

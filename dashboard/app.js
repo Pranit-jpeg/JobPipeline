@@ -51,7 +51,9 @@ async function loadJobs() {
   try {
     const res  = await fetch(`${API}/api/jobs`);
     const json = await res.json();
-    allJobs = json.data || [];
+    // Dismissed jobs are soft-deleted; keep them in the DB (to block
+    // re-scraping the same URL) but hide them from the board entirely.
+    allJobs = (json.data || []).filter(j => j.status !== 'Dismissed');
     populateSourceFilter();
     renderBoard();
   } catch (e) {
@@ -324,7 +326,7 @@ function bindJobModal() {
     if (currentJobId === null) return;
     const job = allJobs.find(j => j.id === currentJobId);
     const name = job ? `${job.title} @ ${job.company}` : `Job #${currentJobId}`;
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    if (!confirm(`Dismiss "${name}"? It will be hidden from the board and won't be re-scraped.`)) return;
     try {
       await fetch(`${API}/api/jobs/${currentJobId}`, { method: 'DELETE' });
       closeJobModal();
@@ -458,7 +460,7 @@ async function openTailorModal(jobId) {
   document.getElementById('tailorOverlay').hidden  = false;
 
   try {
-    const res  = await fetch(`${API}/api/jobs/${jobId}/tailor`, { method: 'POST' });
+    const res  = await fetch(`${API}/api/jobs/${jobId}/generate`, { method: 'POST' });
     const json = await res.json();
 
     if (!res.ok) {
@@ -468,27 +470,63 @@ async function openTailorModal(jobId) {
 
     const data = json.data;
 
-    // Update badge with actual resume version used
     if (data.resume_version) {
       document.getElementById('tResumeBadge').textContent =
         RV_BADGE_LABELS[data.resume_version] || data.resume_version;
     }
 
-    // Render keywords
-    const kwEl = document.getElementById('tKeywords');
-    kwEl.innerHTML = '';
-    (data.keywords || []).forEach(kw => {
-      const card = document.createElement('div');
-      card.className = 'kw-card';
-      card.innerHTML = `
-        <div class="kw-phrase">${escHtml(kw.phrase)}</div>
-        <div class="kw-suggestion">${escHtml(kw.suggestion)}</div>
-      `;
-      kwEl.appendChild(card);
-    });
+    // Render download links
+    const dlEl = document.getElementById('tDownloads');
+    dlEl.innerHTML = '';
+    const addLink = (label, rel) => {
+      if (!rel) return;
+      const a = document.createElement('a');
+      a.className = 'kw-card';
+      a.href = `${API}/api/generated/${rel}`;
+      a.textContent = `⬇  ${label}`;
+      a.target = '_blank';
+      a.style.textDecoration = 'none';
+      a.style.display = 'block';
+      dlEl.appendChild(a);
+    };
+    addLink('Resume (PDF)',       data.resume_pdf_rel);
+    addLink('Cover Letter (PDF)', data.cover_letter_pdf_rel);
+    addLink('Resume (.docx)',     data.resume_docx_rel);
+    addLink('Cover Letter (.docx)', data.cover_letter_docx_rel);
 
-    // Render cover letter
-    document.getElementById('tCoverLetter').textContent = data.cover_letter || '';
+    // Meta line
+    const metaParts = [];
+    if (data.body_ordering) metaParts.push(`Ordering: ${data.body_ordering}`);
+    if (typeof data.used_passion_statement === 'boolean') {
+      metaParts.push(`Passion paragraph: ${data.used_passion_statement ? 'included' : 'skipped'}`);
+    }
+    if (data.resume_tightness > 0) {
+      metaParts.push(`Resume auto-shrunk (level ${data.resume_tightness}) to fit one page`);
+    }
+    if (data.cover_letter_tightness > 0) {
+      metaParts.push(`Cover letter auto-shrunk (level ${data.cover_letter_tightness}) to fit one page`);
+    }
+    if (data.pdf_error) metaParts.push(`⚠ PDF conversion failed — .docx only. (${data.pdf_error})`);
+    document.getElementById('tMeta').textContent = metaParts.join(' · ');
+
+    // Render changes summary
+    const changesEl = document.getElementById('tChanges');
+    changesEl.innerHTML = '';
+    const changes = data.changes_summary || [];
+    if (changes.length === 0) {
+      const li = document.createElement('li');
+      li.textContent = '(No edits reported.)';
+      li.style.opacity = '0.6';
+      changesEl.appendChild(li);
+    } else {
+      changes.forEach(c => {
+        const li = document.createElement('li');
+        li.textContent = c;
+        changesEl.appendChild(li);
+      });
+    }
+
+    document.getElementById('tCoverLetter').textContent = data.cover_letter_preview || '';
 
     document.getElementById('tailorLoading').hidden = true;
     document.getElementById('tailorContent').hidden = false;

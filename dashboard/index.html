@@ -127,21 +127,21 @@
         </div>
       </div>
       <div class="modal-foot">
-        <button class="btn-del" id="btnDelete">Delete</button>
-        <button class="btn-tailor" id="btnTailor">✦ Tailor &amp; Cover Letter</button>
+        <button class="btn-del" id="btnDelete">Dismiss</button>
+        <button class="btn-tailor" id="btnTailor">✦ Generate Application</button>
         <button class="btn-primary" id="btnSave">Save Changes</button>
       </div>
       <div class="save-toast" id="saveToast">Saved ✓</div>
     </div>
   </div>
 
-  <!-- ── Tailor & Cover Letter Modal ── -->
+  <!-- ── Generate Application Modal ── -->
   <div class="overlay tailor-overlay" id="tailorOverlay" hidden>
     <div class="modal modal-lg" id="tailorModal">
       <button class="modal-x" id="tailorModalClose">✕</button>
       <div class="modal-head">
         <div class="modal-title-block">
-          <h2 class="modal-title">Tailor &amp; Cover Letter</h2>
+          <h2 class="modal-title">Generate Application</h2>
           <p class="modal-sub" id="tJobName">—</p>
         </div>
         <span class="rv-badge" id="tResumeBadge">—</span>
@@ -149,17 +149,22 @@
 
       <div class="tailor-loading" id="tailorLoading">
         <div class="tailor-spinner"></div>
-        <p>Generating with Claude Sonnet…</p>
+        <p>Drafting resume (Sonnet) and cover letter (Opus)… ~45–60s</p>
       </div>
 
       <div id="tailorContent" hidden>
         <div class="tailor-section">
-          <h3 class="tailor-section-title">Keywords to Add to Resume</h3>
-          <div id="tKeywords" class="tailor-keywords"></div>
+          <h3 class="tailor-section-title">Downloads</h3>
+          <div id="tDownloads" class="tailor-keywords"></div>
+          <p class="modal-sub" id="tMeta" style="margin-top:8px;"></p>
+        </div>
+        <div class="tailor-section">
+          <h3 class="tailor-section-title">Resume Edits</h3>
+          <ul id="tChanges" class="tailor-changes"></ul>
         </div>
         <div class="tailor-section">
           <div class="tailor-section-head">
-            <h3 class="tailor-section-title">Cover Letter</h3>
+            <h3 class="tailor-section-title">Cover Letter Preview</h3>
             <button class="btn-copy" id="btnCopyCL">Copy</button>
           </div>
           <div id="tCoverLetter" class="tailor-cl"></div>
