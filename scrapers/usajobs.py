@@ -37,12 +37,15 @@ class USAJobsScraper(BaseScraper):
 
     def _headers(self):
         api_key = os.environ.get("USAJOBS_API_KEY", "")
-        email = os.environ.get("USAJOBS_EMAIL", "choudhary.pra@northeastern.edu")
-        if not api_key:
+        email = os.environ.get("USAJOBS_EMAIL", "")
+        if not api_key or not email:
             raise RuntimeError(
-                "USAJobs API key not set.\n"
+                "USAJobs credentials not set.\n"
                 "  1. Register free at https://developer.usajobs.gov/\n"
-                "  2. Add to .env in the project root: USAJOBS_API_KEY=your_key_here"
+                "  2. Add to .env in the project root:\n"
+                "       USAJOBS_API_KEY=your_key_here\n"
+                "       USAJOBS_EMAIL=your_email@example.com\n"
+                "     (USAJobs requires a real email in the User-Agent header.)"
             )
         return {
             "Host": "data.usajobs.gov",
