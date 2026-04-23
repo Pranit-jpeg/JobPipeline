@@ -45,9 +45,9 @@ SCRAPERS = [
     MathematicaScraper,
     AbtScraper,
     AEIScraper,
-    # ── Tech (H-1B sponsors) ─────────────────────────────────────────────────
-    AmazonScraper,
-    GoogleScraper,
+    # ── Tech (H-1B sponsors) — PAUSED: application limit reached ─────────────
+    # AmazonScraper,
+    # GoogleScraper,
     # ── Finance research (H-1B sponsors) ─────────────────────────────────────
     JPMorganScraper,
     MoodyScraper,

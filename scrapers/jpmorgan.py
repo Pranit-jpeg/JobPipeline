@@ -35,7 +35,11 @@ class JPMorganScraper(BaseScraper):
     def _fetch(self, keyword, offset):
         params = {
             "onlyData": "true",
-            "expand":   "requisitionList.workLocation,requisitionList.secondaryLocations,requisitionList.PostedDate",
+            # The old expand sub-field names (workLocation, secondaryLocations,
+            # PostedDate) make Oracle HCM return HTTP 400. Just asking for
+            # requisitionList is enough — it already includes Title,
+            # PrimaryLocation, PostedDate, etc. inline.
+            "expand":   "requisitionList",
             "finder": (
                 f'findReqs;siteNumber=CX_1001,'
                 f'facetsList=LOCATIONS,'

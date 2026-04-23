@@ -67,6 +67,153 @@ def matches_target_role(title: str) -> bool:
     return any(term in t for term in _INCLUDE_TERMS)
 
 
+# ── US-location filter ────────────────────────────────────────────────────────
+
+_US_STATE_ABBRS = {
+    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+    "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+    "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+    "VA","WA","WV","WI","WY","DC","PR",
+}
+
+_US_STATE_NAMES = {
+    "alabama","alaska","arizona","arkansas","california","colorado","connecticut",
+    "delaware","florida","georgia","hawaii","idaho","illinois","indiana","iowa",
+    "kansas","kentucky","louisiana","maine","maryland","massachusetts","michigan",
+    "minnesota","mississippi","missouri","montana","nebraska","nevada",
+    "new hampshire","new jersey","new mexico","new york","north carolina",
+    "north dakota","ohio","oklahoma","oregon","pennsylvania","rhode island",
+    "south carolina","south dakota","tennessee","texas","utah","vermont",
+    "virginia","washington","west virginia","wisconsin","wyoming",
+    "district of columbia","puerto rico",
+}
+
+_US_SIGNALS = {
+    "united states", "usa", "u.s.a.", "u.s.", " us ",
+    "remote - us", "remote, us", "remote us", "us remote", "us-remote",
+    "remote (us)", "remote (usa)", "nationwide",
+}
+
+# Non-US signals: country names and prominent cities strongly associated with
+# non-US offices. Anything here (without a US state/abbr also present) rejects.
+_NON_US_COUNTRIES = {
+    "united kingdom","uk","u.k.","england","scotland","wales","northern ireland",
+    "ireland","france","germany","spain","italy","netherlands","belgium",
+    "switzerland","sweden","norway","denmark","finland","poland","portugal",
+    "austria","luxembourg","czech","greece","romania","hungary",
+    "canada","mexico","brazil","argentina","chile","colombia",
+    "india","china","japan","singapore","hong kong","south korea","korea",
+    "taiwan","thailand","vietnam","malaysia","indonesia","philippines",
+    "australia","new zealand",
+    "uae","united arab emirates","saudi arabia","israel","qatar","egypt",
+    "south africa","kenya","nigeria","turkey","russia",
+}
+
+_NON_US_CITIES = {
+    "london","manchester","edinburgh","dublin","paris","berlin","munich",
+    "frankfurt","amsterdam","rotterdam","brussels","madrid","barcelona","rome",
+    "milan","zurich","geneva","stockholm","oslo","copenhagen","helsinki",
+    "warsaw","lisbon","vienna","prague","athens","budapest",
+    "toronto","montreal","vancouver","ottawa","calgary",
+    "mexico city","sao paulo","buenos aires","santiago","bogota",
+    "mumbai","bangalore","bengaluru","delhi","hyderabad","chennai","pune",
+    "gurgaon","gurugram","noida","kolkata",
+    "beijing","shanghai","shenzhen","guangzhou",
+    "tokyo","osaka","seoul","taipei","bangkok","kuala lumpur","jakarta",
+    "manila","ho chi minh","hanoi",
+    "sydney","melbourne","brisbane","auckland","wellington",
+    "dubai","abu dhabi","riyadh","doha","tel aviv","istanbul",
+}
+
+
+_UK_SIGNALS = {"united kingdom", "uk", "u.k.", "england", "scotland", "wales",
+               "northern ireland", "britain", "great britain"}
+_UK_CITIES  = {"london", "manchester", "edinburgh", "birmingham", "leeds",
+               "bristol", "glasgow", "liverpool", "sheffield", "cardiff",
+               "belfast", "reading"}
+
+_UAE_SIGNALS = {"uae", "u.a.e.", "united arab emirates"}
+_UAE_CITIES  = {"dubai", "abu dhabi", "sharjah", "ajman", "ras al khaimah",
+                "al ain"}
+
+_NL_SIGNALS = {"netherlands", "holland", "the netherlands"}
+_NL_CITIES  = {"amsterdam", "rotterdam", "the hague", "den haag", "utrecht",
+               "eindhoven", "groningen", "tilburg"}
+
+_IN_SIGNALS = {"india"}
+_IN_CITIES  = {"mumbai", "bangalore", "bengaluru", "new delhi", "delhi",
+               "hyderabad", "chennai", "pune", "gurgaon", "gurugram",
+               "noida", "kolkata", "ahmedabad", "jaipur", "chandigarh",
+               "indore", "coimbatore"}
+
+
+def _has_signal(low, tokens, signals, cities):
+    if any(s in low for s in signals):
+        return True
+    for t in tokens:
+        if t in cities:
+            return True
+        for c in cities:
+            if c in t:
+                return True
+    return False
+
+
+def classify_location(location: str):
+    """
+    Return a country code for allowed regions, or None to reject.
+    Allowed: 'US' (primary), 'UK', 'UAE', 'NL', 'IN' (secondary).
+    Ambiguous strings (empty, "Remote", "Multiple Locations") default to 'US'.
+    """
+    if not location:
+        return "US"
+
+    raw = location.strip()
+    if not raw:
+        return "US"
+
+    low = raw.lower()
+
+    ambiguous = {"unknown", "multiple locations", "various", "remote", "flexible"}
+    if low in ambiguous:
+        return "US"
+
+    tokens = [t.strip() for t in re.split(r"[,/()\-|;]", low) if t.strip()]
+
+    # 1. US signals take priority (state abbrs are unambiguous with uppercase tokens)
+    if any(sig in low for sig in _US_SIGNALS):
+        return "US"
+    for tok in tokens:
+        if tok in _US_STATE_NAMES:
+            return "US"
+    for tok in re.split(r"[,/()\-|;\s]+", raw):
+        if tok in _US_STATE_ABBRS:
+            return "US"
+
+    # 2. Secondary allowed countries
+    if _has_signal(low, tokens, _UAE_SIGNALS, _UAE_CITIES):
+        return "UAE"
+    if _has_signal(low, tokens, _NL_SIGNALS, _NL_CITIES):
+        return "NL"
+    if _has_signal(low, tokens, _IN_SIGNALS, _IN_CITIES):
+        return "IN"
+    if _has_signal(low, tokens, _UK_SIGNALS, _UK_CITIES):
+        return "UK"
+
+    # 3. Explicit non-allowed country/city → reject
+    if any(country in low for country in _NON_US_COUNTRIES):
+        return None
+    for tok in tokens:
+        if tok in _NON_US_CITIES:
+            return None
+        for city in _NON_US_CITIES:
+            if city in tok:
+                return None
+
+    # 4. Nothing conclusive — default to US.
+    return "US"
+
+
 def _parse_date_posted(s):
     """Parse a date/datetime string to a UTC-aware datetime, or None on failure."""
     if not s:
@@ -135,10 +282,11 @@ class BaseScraper:
             print(f"[{self.SOURCE}] ERROR: {e}")
             return 0
 
-        skipped_senior   = 0
-        skipped_offtopic = 0
-        skipped_stale    = 0
-        new_count        = 0
+        skipped_senior      = 0
+        skipped_offtopic    = 0
+        skipped_stale       = 0
+        skipped_non_allowed = 0
+        new_count           = 0
 
         for job in jobs:
             title = job["title"]
@@ -149,6 +297,10 @@ class BaseScraper:
 
             if not matches_target_role(title):
                 skipped_offtopic += 1
+                continue
+
+            if classify_location(job.get("location", "")) is None:
+                skipped_non_allowed += 1
                 continue
 
             date_posted = job.get("date_posted")
@@ -175,7 +327,8 @@ class BaseScraper:
         print(
             f"[{self.SOURCE}] Done — {new_count} new job(s) added "
             f"({len(jobs)} found, {skipped_senior} senior, "
-            f"{skipped_offtopic} off-topic, {skipped_stale} stale)."
+            f"{skipped_offtopic} off-topic, {skipped_non_allowed} non-allowed, "
+            f"{skipped_stale} stale)."
         )
         return new_count
 
