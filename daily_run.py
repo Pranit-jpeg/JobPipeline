@@ -15,6 +15,11 @@ from datetime import datetime
 ROOT = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ROOT)
 
+# Windows console (cp1252) chokes on ✓/✗ — force UTF-8 on stdout/stderr.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+
 from dotenv import load_dotenv
 load_dotenv(os.path.join(ROOT, ".env"))
 
@@ -115,8 +120,14 @@ def phase2_score():
                 match_score=result["score"],
                 matched_resume=result["best_resume"],
             )
-            flag = "✓" if result["score"] >= THRESHOLD else "✗"
-            log.info(f"  {label} {title} {result['score']:>3}%  [{result['best_resume']}]  {flag}")
+            if result.get("disqualified"):
+                flag = "DQ"
+            elif result["score"] >= THRESHOLD:
+                flag = "✓"
+            else:
+                flag = "✗"
+            country = result.get("country") or "??"
+            log.info(f"  {label} {title} {result['score']:>3}%  [{country:<3}] [{result['best_resume']}]  {flag}")
             scored += 1
         else:
             log.warning(f"  {label} {title} FAILED")
@@ -137,7 +148,11 @@ def phase4_h1b():
     log.info("=" * 55)
 
     all_jobs = db.list_jobs()
-    unknown  = [j for j in all_jobs if j.get("h1b_status") in (None, "Unknown", "")]
+    unknown  = [
+        j for j in all_jobs
+        if j.get("h1b_status") in (None, "Unknown", "")
+        and j.get("status") != "Dismissed"
+    ]
     tagged   = 0
 
     for job in unknown:
@@ -150,25 +165,28 @@ def phase4_h1b():
     log.info(f"  Tagged: {tagged} jobs  |  Total Known Sponsors in pipeline: {sponsors}")
 
 
-# ── Phase 3: Auto-delete below threshold ──────────────────────────────────────
+# ── Phase 3: Auto-dismiss below threshold ─────────────────────────────────────
+#
+# Soft-delete (status='Dismissed') rather than DELETE, so the unique URL
+# survives and the same posting won't be re-scraped next run.
 
 def phase3_cleanup():
     log.info("")
     log.info("=" * 55)
-    log.info(f"PHASE 3 — Auto-deleting jobs below {THRESHOLD}%")
+    log.info(f"PHASE 3 — Auto-dismissing jobs below {THRESHOLD}%")
     log.info("=" * 55)
 
-    all_new   = db.list_jobs(status="New")
-    to_delete = [
+    all_new     = db.list_jobs(status="New")
+    to_dismiss  = [
         j for j in all_new
         if j.get("match_score") is not None and j["match_score"] < THRESHOLD
     ]
 
-    for j in to_delete:
-        db.delete_job(j["id"])
+    for j in to_dismiss:
+        db.update_job(j["id"], status="Dismissed")
 
-    log.info(f"  Deleted: {len(to_delete)} jobs")
-    return len(to_delete)
+    log.info(f"  Dismissed: {len(to_dismiss)} jobs")
+    return len(to_dismiss)
 
 
 # ── Summary ───────────────────────────────────────────────────────────────────
@@ -180,10 +198,11 @@ def print_summary():
     log.info("=" * 55)
 
     all_jobs  = db.list_jobs()
+    active    = [j for j in all_jobs if j.get("status") != "Dismissed"]
     stats     = db.get_stats()
     by_status = stats.get("by_status", {})
 
-    log.info(f"  Total jobs in pipeline: {len(all_jobs)}")
+    log.info(f"  Total jobs in pipeline: {len(active)}  (dismissed: {len(all_jobs) - len(active)})")
     for status in ["New", "Interested", "Applied", "Interview", "Offer", "Rejected"]:
         n = by_status.get(status, 0)
         if n:
@@ -231,11 +250,13 @@ if __name__ == "__main__":
 
 # ── Windows Task Scheduler Setup ──────────────────────────────────────────────
 #
+# Replace <path-to-JobPipeline> below with your actual project path.
+#
 # 1. Open Task Scheduler (search "Task Scheduler" in Start menu)
 # 2. Click "Create Basic Task" → name it "JobPipeline Daily"
 # 3. Trigger: Daily, set your preferred time (e.g. 8:00 AM)
 # 4. Action: "Start a program"
-#    Program:   C:\Users\prani\Desktop\JobPipeline\venv\Scripts\python.exe
-#    Arguments: C:\Users\prani\Desktop\JobPipeline\daily_run.py
-#    Start in:  C:\Users\prani\Desktop\JobPipeline
+#    Program:   <path-to-JobPipeline>\venv\Scripts\python.exe
+#    Arguments: <path-to-JobPipeline>\daily_run.py
+#    Start in:  <path-to-JobPipeline>
 # 5. Finish — logs will appear in JobPipeline\logs\YYYY-MM-DD.log

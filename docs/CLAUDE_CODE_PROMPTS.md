@@ -9,7 +9,7 @@
 # 1. Install Claude Code: Go to https://claude.ai/download and install the desktop app
 #    OR install via terminal: npm install -g @anthropic-ai/claude-code
 # 2. Open your terminal/command prompt
-# 3. Navigate to the project: cd C:\Users\prani\Desktop\JobPipeline
+# 3. Navigate to the project: cd <project-root>
 # 4. Run: claude
 # 5. Claude Code will now use this folder as context
 # 6. You can also set this as a "Project" in Claude Code settings
