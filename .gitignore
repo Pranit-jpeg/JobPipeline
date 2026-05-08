@@ -40,6 +40,7 @@ dashboard/dist/
 # Resumes — contain personal info, kept local only
 resumes/*.pdf
 resumes/*.txt
+resumes/_v1_backup/
 
 # Local-only parts of the resume-tailoring tool
 generation/humanizer.py
