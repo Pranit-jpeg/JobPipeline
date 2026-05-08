@@ -10,6 +10,7 @@ from datetime import date
 import anthropic
 
 from .prompts import ANTI_SLOP_RULES, COVER_LETTER_PROMPT
+from .utils import build_company_address_line
 
 # Optional local post-processing pass for voice/style calibration.
 # If the module isn't present (public clone), fall back to a no-op so the
@@ -85,8 +86,10 @@ def generate_cover_letter(job: dict, resume_text: str, resume_version: str, jd_t
 
     l1, g1, l2, g2, l3, g3, ordering_label = _ordering(resume_version)
 
-    address = job.get("location") or ""
-    company_address_line = address if address else "[Company Address]"
+    # Either "" (no city line) or "\n   <City, ST>" — concatenated directly
+    # after the company name in the prompt header so the line vanishes
+    # when the scraper produced a junk location like "4 Locations Available".
+    company_address_line_full = build_company_address_line(job.get("location") or "")
 
     prompt = COVER_LETTER_PROMPT.format(
         job_context=_build_job_context(job, jd_text),
@@ -94,7 +97,7 @@ def generate_cover_letter(job: dict, resume_text: str, resume_version: str, jd_t
         resume_text=resume_text,
         today_date=date.today().strftime("%B %d, %Y"),
         company=job["company"],
-        company_address_line=company_address_line,
+        company_address_line_full=company_address_line_full,
         body_section_1_label=l1, body_section_1_guidance=g1,
         body_section_2_label=l2, body_section_2_guidance=g2,
         body_section_3_label=l3, body_section_3_guidance=g3,
@@ -115,6 +118,7 @@ def generate_cover_letter(job: dict, resume_text: str, resume_version: str, jd_t
     data = json.loads(raw[start:end])
     if "cover_letter_text" not in data:
         raise ValueError("Cover letter JSON missing 'cover_letter_text'")
+    data.setdefault("audit_notes", [])
     # Optional voice-calibration pass. No-op if humanize_cover_letter is the
     # stub (module not installed); otherwise runs the local humanizer.
     data["cover_letter_text"] = humanize_cover_letter(data["cover_letter_text"])

@@ -1,8 +1,9 @@
 {
   "name": "Your Name",
-  "contact_line": "LinkedIn | your_email@example.com | (000) 000-0000 | City, State | GitHub",
+  "contact_line": "LinkedIn | your_email@example.com | (000) 000-0000 | City, State | GitHub | Website",
   "linkedin_url": "https://www.linkedin.com/in/your-handle",
   "github_url": "https://github.com/your-handle",
+  "website_url": "https://your-handle.github.io",
   "school": "Your University",
   "program": "your graduate program",
   "grad_date": "Month YYYY",

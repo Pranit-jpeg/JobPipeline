@@ -1,17 +1,29 @@
-"""Resume tailoring via Claude Sonnet 4.6.
+"""Resume tailoring via Claude Opus 4.7.
 
 Returns a structured resume dict ready for the docx writer. Prompt constrains
-the model to rephrasing + reordering existing content; no fabrication.
+the model to rephrasing + reordering existing content; no fabrication. The
+prompt also runs an embedded keyword-extract -> draft -> audit -> revise
+loop in a single call, so the returned JSON includes ats_keywords + audit_notes
+fields surfaced to the user.
+
+Wrap-zone correctness (last-line-fill) is handled by the render-feedback
+loop in orchestrator.py + wrap_check.py, which parses the actual rendered
+PDF and asks the model to rewrite bullets that wrap with mostly-empty last
+lines. Character-count thresholds in this prompt are guidance only — the
+authoritative check happens after rendering.
 """
 import json
+import logging
 import os
 
 import anthropic
 
 from .prompts import RESUME_TAILOR_PROMPT
 
-MODEL = "claude-sonnet-4-6"
-MAX_TOKENS = 4000
+MODEL = "claude-opus-4-7"
+MAX_TOKENS = 6000
+
+_log = logging.getLogger(__name__)
 
 
 def _build_job_context(job: dict, jd_text: str) -> str:
@@ -56,4 +68,11 @@ def tailor_resume(job: dict, resume_text: str, resume_version: str, jd_text: str
     missing = required - data.keys()
     if missing:
         raise ValueError(f"Tailored resume JSON missing fields: {missing}")
+
+    # Optional fields. Wrap-zone correctness is enforced post-render in the
+    # orchestrator (see wrap_check.remediate_wraps_with_render_feedback).
+    data.setdefault("ats_keywords", [])
+    data.setdefault("audit_notes", [])
+    data.setdefault("changes_summary", [])
+    data.setdefault("academic_projects", [])
     return data

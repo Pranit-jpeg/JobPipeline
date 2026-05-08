@@ -149,7 +149,7 @@
 
       <div class="tailor-loading" id="tailorLoading">
         <div class="tailor-spinner"></div>
-        <p>Drafting resume (Sonnet) and cover letter (Opus)… ~45–60s</p>
+        <p>Drafting resume + cover letter (Opus, with self-critique) and humanizer pass… ~75–120s</p>
       </div>
 
       <div id="tailorContent" hidden>
@@ -159,8 +159,16 @@
           <p class="modal-sub" id="tMeta" style="margin-top:8px;"></p>
         </div>
         <div class="tailor-section">
+          <h3 class="tailor-section-title">ATS Keywords (extracted from JD)</h3>
+          <div id="tKeywords" class="tailor-keywords"></div>
+        </div>
+        <div class="tailor-section">
           <h3 class="tailor-section-title">Resume Edits</h3>
           <ul id="tChanges" class="tailor-changes"></ul>
+        </div>
+        <div class="tailor-section">
+          <h3 class="tailor-section-title">Resume Self-Audit</h3>
+          <ul id="tResumeAudit" class="tailor-changes"></ul>
         </div>
         <div class="tailor-section">
           <div class="tailor-section-head">
@@ -168,6 +176,10 @@
             <button class="btn-copy" id="btnCopyCL">Copy</button>
           </div>
           <div id="tCoverLetter" class="tailor-cl"></div>
+        </div>
+        <div class="tailor-section">
+          <h3 class="tailor-section-title">Cover Letter Self-Audit</h3>
+          <ul id="tCoverAudit" class="tailor-changes"></ul>
         </div>
       </div>
 

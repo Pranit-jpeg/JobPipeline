@@ -18,19 +18,31 @@ from profile import PROFILE
 
 # ───────────────────────── style levels ─────────────────────────
 
-# Each level dials margins/fonts tighter. Level 0 matches the original PDF.
-# Level 4 is the final safety net — dense but still legible.
+# 9 progressively tighter style levels (0 = loosest, 8 = densest safety net).
+# Each step shrinks ONE dimension at a time (line-spacing OR margins OR body
+# font), so the auto-fit loop can find the loosest level that fits without
+# overshooting and leaving big bottom whitespace gaps.
+#
+# Step deltas (rough):
+#   0→1: line spacing only
+#   1→2: margins only
+#   2→3: line spacing
+#   3→4: body font 10 → 9.5
+#   4→5: line spacing
+#   5→6: margins
+#   6→7: body font 9.5 → 9.0
+#   7→8: body font 9.0 → 8.5 + final margin/line squeeze
 def _style(tightness: int) -> dict:
-    t = max(0, min(4, int(tightness)))
-    margins_tb = [0.5, 0.42, 0.38, 0.35, 0.30][t]
-    margins_lr = [0.6, 0.5, 0.45, 0.4, 0.35][t]
-    body = [10.0, 9.5, 9.5, 9.0, 8.5][t]
-    section = [11.0, 11.0, 10.5, 10.5, 10.0][t]
-    name = [18.0, 18.0, 17.5, 17.0, 16.5][t]
-    contact = [9.0, 9.0, 9.0, 8.5, 8.0][t]
+    t = max(0, min(8, int(tightness)))
+    margins_tb = [0.50, 0.50, 0.45, 0.45, 0.42, 0.42, 0.38, 0.35, 0.30][t]
+    margins_lr = [0.60, 0.60, 0.55, 0.55, 0.50, 0.50, 0.42, 0.40, 0.35][t]
+    body       = [10.0, 10.0, 10.0, 10.0, 9.50, 9.50, 9.50, 9.00, 8.50][t]
+    line       = [1.15, 1.10, 1.10, 1.06, 1.10, 1.04, 1.00, 1.00, 0.98][t]
+    section    = [11.0, 11.0, 11.0, 11.0, 10.5, 10.5, 10.5, 10.5, 10.0][t]
+    name       = [18.0, 18.0, 18.0, 18.0, 17.5, 17.5, 17.0, 17.0, 16.5][t]
+    contact    = [9.00, 9.00, 9.00, 9.00, 9.00, 8.50, 8.50, 8.50, 8.00][t]
     role = body
     company = body + 0.5
-    line = [1.12, 1.08, 1.04, 1.0, 0.98][t]
     return dict(
         margins_tb=margins_tb, margins_lr=margins_lr,
         name=Pt(name), contact=Pt(contact), section=Pt(section),
@@ -48,6 +60,7 @@ BODY_FONT = "Calibri"
 # contact line into real hyperlinks on the rendered resume.
 LINKEDIN_URL = PROFILE["linkedin_url"]
 GITHUB_URL   = PROFILE["github_url"]
+WEBSITE_URL  = PROFILE.get("website_url", "")
 
 
 def _set_margins(doc, top, bottom, left, right):
@@ -148,6 +161,8 @@ def _write_contact_line(paragraph, text: str, size):
             _add_hyperlink(paragraph, LINKEDIN_URL, seg, size=size)
         elif low == "github":
             _add_hyperlink(paragraph, GITHUB_URL, seg, size=size)
+        elif low == "website" and WEBSITE_URL:
+            _add_hyperlink(paragraph, WEBSITE_URL, seg, size=size)
         elif "@" in seg and " " not in seg:
             _add_hyperlink(paragraph, f"mailto:{seg}", seg, size=size)
         else:
@@ -233,6 +248,19 @@ def write_resume_docx(resume: dict, output_path: str, tightness: int = 0):
             italic = key == "courses"
             _add_run(p, val, italic=italic, size=s["body"])
 
+    # Academic Projects (only if the base resume had them)
+    projects = resume.get("academic_projects") or []
+    if projects:
+        _section_header(doc, "Academic Projects", s["section"])
+        for proj in projects:
+            name = (proj.get("name") or "").strip()
+            if name:
+                p = doc.add_paragraph()
+                _tight(p, space_before=0, space_after=0)
+                _add_run(p, name, bold=True, size=s["body"])
+            for bullet in proj.get("bullets", []):
+                _bullet(doc, bullet, size=s["body"], line=s["line"])
+
     # Skills
     _section_header(doc, "Skills", s["section"])
     for label, items in resume.get("skills", {}).items():
@@ -248,11 +276,13 @@ def write_resume_docx(resume: dict, output_path: str, tightness: int = 0):
 # ───────────────────────── cover letter ─────────────────────────
 
 def write_cover_letter_docx(cover_letter_text: str, output_path: str, tightness: int = 0):
-    t = max(0, min(4, int(tightness)))
-    margins = [1.0, 0.85, 0.75, 0.65, 0.55][t]
-    size = Pt([11.0, 10.5, 10.0, 10.0, 9.5][t])
-    line = [1.15, 1.12, 1.08, 1.04, 1.0][t]
-    space_after = [8, 6, 5, 4, 3][t]
+    t = max(0, min(8, int(tightness)))
+    # 9 progressively tighter levels — each step shrinks one dimension primarily.
+    margins      = [1.00, 0.95, 0.85, 0.85, 0.75, 0.75, 0.65, 0.60, 0.55][t]
+    size_pt      = [11.0, 11.0, 11.0, 10.5, 10.5, 10.0, 10.0, 10.0, 9.50][t]
+    line         = [1.15, 1.12, 1.08, 1.10, 1.06, 1.10, 1.04, 1.00, 1.00][t]
+    space_after  = [   8,    7,    7,    6,    5,    5,    4,    4,    3][t]
+    size = Pt(size_pt)
 
     doc = Document()
     _set_margins(doc, margins, margins, margins, margins)

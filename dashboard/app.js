@@ -506,25 +506,55 @@ async function openTailorModal(jobId) {
     if (data.cover_letter_tightness > 0) {
       metaParts.push(`Cover letter auto-shrunk (level ${data.cover_letter_tightness}) to fit one page`);
     }
+    if (typeof data.jd_chars === 'number') {
+      const jdLabel = data.jd_chars < 800
+        ? `⚠ JD fetch returned only ${data.jd_chars} chars — keywords inferred, not extracted`
+        : `JD fetched: ${data.jd_chars} chars`;
+      metaParts.push(jdLabel);
+    }
     if (data.pdf_error) metaParts.push(`⚠ PDF conversion failed — .docx only. (${data.pdf_error})`);
     document.getElementById('tMeta').textContent = metaParts.join(' · ');
 
-    // Render changes summary
-    const changesEl = document.getElementById('tChanges');
-    changesEl.innerHTML = '';
-    const changes = data.changes_summary || [];
-    if (changes.length === 0) {
-      const li = document.createElement('li');
-      li.textContent = '(No edits reported.)';
-      li.style.opacity = '0.6';
-      changesEl.appendChild(li);
+    // Render ATS keywords
+    const kwEl = document.getElementById('tKeywords');
+    kwEl.innerHTML = '';
+    const keywords = data.ats_keywords || [];
+    if (keywords.length === 0) {
+      const span = document.createElement('span');
+      span.textContent = '(No keywords extracted.)';
+      span.style.opacity = '0.6';
+      kwEl.appendChild(span);
     } else {
-      changes.forEach(c => {
-        const li = document.createElement('li');
-        li.textContent = c;
-        changesEl.appendChild(li);
+      keywords.forEach(k => {
+        const chip = document.createElement('span');
+        chip.className = 'kw-card';
+        chip.textContent = k;
+        chip.style.display = 'inline-block';
+        chip.style.margin = '2px 4px 2px 0';
+        kwEl.appendChild(chip);
       });
     }
+
+    // Render edit summary + audit lists (shared helper)
+    const renderList = (elId, items, emptyMsg) => {
+      const el = document.getElementById(elId);
+      el.innerHTML = '';
+      if (!items || items.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = emptyMsg;
+        li.style.opacity = '0.6';
+        el.appendChild(li);
+      } else {
+        items.forEach(c => {
+          const li = document.createElement('li');
+          li.textContent = c;
+          el.appendChild(li);
+        });
+      }
+    };
+    renderList('tChanges',     data.changes_summary,         '(No edits reported.)');
+    renderList('tResumeAudit', data.resume_audit_notes,      '(No audit findings.)');
+    renderList('tCoverAudit',  data.cover_letter_audit_notes,'(No audit findings.)');
 
     document.getElementById('tCoverLetter').textContent = data.cover_letter_preview || '';
 
