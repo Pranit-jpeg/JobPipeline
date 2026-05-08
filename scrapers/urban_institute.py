@@ -8,7 +8,7 @@ from scrapers.base import WorkdayScraper
 class UrbanInstituteScraper(WorkdayScraper):
     COMPANY = "Urban Institute"
     SOURCE = "urban_institute"
-    WD_HOST = "urban.wd1.myworkdayjobs.com"
+    WD_HOST = "urban.wd115.myworkdayjobs.com"
     WD_TENANT = "urban"
     WD_SITE = "Urban-Careers"
 

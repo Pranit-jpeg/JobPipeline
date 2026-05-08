@@ -35,6 +35,9 @@ from scrapers.cra import CRAScraper
 from scrapers.nera import NERAScraper
 from scrapers.compass_lexecon import CompassLexeconScraper
 from scrapers.analysis_group import AnalysisGroupScraper
+from scrapers.meta import MetaScraper
+from scrapers.uber import UberScraper
+from scrapers.morgan_stanley import MorganStanleyScraper
 
 SCRAPERS = [
     # ── Policy / research firms (some H-1B sponsorship) ──────────────────────
@@ -48,8 +51,11 @@ SCRAPERS = [
     # ── Tech (H-1B sponsors) — PAUSED: application limit reached ─────────────
     # AmazonScraper,
     # GoogleScraper,
+    MetaScraper,
+    UberScraper,
     # ── Finance research (H-1B sponsors) ─────────────────────────────────────
     JPMorganScraper,
+    MorganStanleyScraper,
     MoodyScraper,
     SPGlobalScraper,
     # ── Economic consulting (strong H-1B sponsors, prime lane) ───────────────

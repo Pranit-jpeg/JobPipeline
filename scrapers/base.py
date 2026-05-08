@@ -14,10 +14,12 @@ from h1b_sponsors import get_h1b_status
 
 MAX_AGE_HOURS = 36
 
-# Substrings that disqualify a title as too senior.
-# Titles are padded with spaces so " lead " won't match "leadership".
+# Substrings that always disqualify a title as too senior, regardless of
+# company leveling conventions. Titles are padded with spaces in the check
+# below so " lead " won't match "leadership".
 _EXCLUDE_TERMS = [
-    "senior", " sr.", "(sr)",
+    "senior", " sr.", "(sr)", " sr ",          # "Sr Researcher" with no period (Uber convention)
+    "staff ",                                    # "Staff Engineer/Scientist" = senior IC at Meta/Uber/Google
     "lead ",
     "principal",
     "director",
@@ -28,14 +30,29 @@ _EXCLUDE_TERMS = [
     "managing",
     "executive director", "executive vice",
     "associate director", "associate vp", "associate vice",
-    " ii ", " iii ", " iv ",
 ]
 
+# Roman-numeral level suffixes. At consulting and research firms ("Researcher
+# II", "Director II"), these indicate mid-senior or above. At big-tech
+# companies (Uber, Amazon, Google when active), "Engineer II" / "Data
+# Scientist II" is L3-L4 — mid-level, MS-new-grad eligible. So this list is
+# applied opt-in via the BaseScraper.STRICT_LEVEL_FILTER class attribute.
+_ROMAN_LEVEL_TERMS = [" ii ", " iii ", " iv "]
 
-def is_entry_level(title: str) -> bool:
-    """Return True if the title looks like an entry-level or early-career role."""
+
+def is_entry_level(title: str, strict_levels: bool = True) -> bool:
+    """Return True if the title looks like an entry-level or early-career role.
+
+    `strict_levels=False` is intended for big-tech scrapers where the
+    Roman-numeral convention shifts: "II/III" titles at Uber/Amazon are
+    mid-level, not senior.
+    """
     t = f" {title.lower()} "
-    return not any(term in t for term in _EXCLUDE_TERMS)
+    if any(term in t for term in _EXCLUDE_TERMS):
+        return False
+    if strict_levels and any(term in t for term in _ROMAN_LEVEL_TERMS):
+        return False
+    return True
 
 
 # Substrings that mark a title as topically relevant to Pranit's target roles.
@@ -268,6 +285,10 @@ class BaseScraper:
     COMPANY = "Unknown"
     SOURCE = "unknown"
     IGNORE_FRESHNESS = False  # set True for feeds where postings are intentionally weeks old
+    # Set False on big-tech scrapers (Uber, Amazon, Google) where "Engineer II"
+    # is mid-level. Default True keeps the conservative filter for consulting,
+    # research, and policy employers.
+    STRICT_LEVEL_FILTER = True
 
     def scrape(self):
         """Return a list of job dicts with keys: title, company, location, url, salary (optional)."""
@@ -291,7 +312,7 @@ class BaseScraper:
         for job in jobs:
             title = job["title"]
 
-            if not is_entry_level(title):
+            if not is_entry_level(title, strict_levels=self.STRICT_LEVEL_FILTER):
                 skipped_senior += 1
                 continue
 
