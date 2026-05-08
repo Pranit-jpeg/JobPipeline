@@ -17,11 +17,16 @@ from bs4 import BeautifulSoup
 import anthropic
 import db
 from profile import PROFILE
+# Single source of truth for JD fetching. The generator's fetch_jd does
+# static-first with a Playwright fallback for JS-rendered pages (Workday,
+# Meta, Cornerstone, etc.). Without this, the scorer was getting empty
+# shells from every JS-rendered ATS and grading on the title alone.
+from generation.utils import fetch_jd as _fetch_jd_with_fallback
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-THRESHOLD   = 75
-MODEL       = "claude-haiku-4-5-20251001"
+THRESHOLD   = 70
+MODEL       = "claude-sonnet-4-6"
 RESUMES_DIR = os.path.join(os.path.dirname(__file__), "resumes")
 DELAY       = 0.3   # seconds between API calls to respect rate limits
 
@@ -48,24 +53,22 @@ def load_resumes():
 
 
 def fetch_description(url):
-    """Fetch and clean job page text. Returns empty string on failure."""
-    try:
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-        resp = requests.get(url, headers=headers, timeout=12, allow_redirects=True)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-        for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
-            tag.decompose()
-        lines = [ln.strip() for ln in soup.get_text(separator="\n").splitlines() if ln.strip()]
-        return "\n".join(lines)[:4000]
-    except Exception:
-        return ""
+    """Delegates to the generator's static+Playwright fetcher.
+
+    Kept as a thin wrapper so existing callers (daily_run.py imports this
+    name) keep working without churn. The 4000-char cap matches the prior
+    behavior so prompt token costs don't change.
+    """
+    return (_fetch_jd_with_fallback(url) or "")[:4000]
 
 
-def score_job(client, job, resumes):
+def score_job(client, job, resumes, model=None):
     """
     Ask Claude which resume fits best and return a 0-100 match score.
     Returns dict {score, best_resume, reasoning} or None on failure.
+
+    `model` overrides the module-level MODEL default — used by the rescore
+    A/B-test path to compare Haiku vs Sonnet on the same job set.
     """
     description = fetch_description(job["url"])
 
@@ -112,7 +115,7 @@ Respond with ONLY valid JSON — no extra text:
     for attempt in range(2):
         try:
             resp = client.messages.create(
-                model=MODEL,
+                model=model or MODEL,
                 max_tokens=300,
                 messages=[{"role": "user", "content": prompt}],
             )
