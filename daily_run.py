@@ -31,7 +31,7 @@ from h1b_sponsors import get_h1b_status
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-THRESHOLD   = 75     # jobs below this % are auto-deleted
+THRESHOLD   = 70     # jobs below this % are auto-deleted
 SCORE_DELAY = 0.3    # seconds between Claude API calls
 
 # ── Logging (console + daily log file) ───────────────────────────────────────
@@ -183,7 +183,7 @@ def phase3_cleanup():
     ]
 
     for j in to_dismiss:
-        db.update_job(j["id"], status="Dismissed")
+        db.dismiss_job(j["id"], by_user=False)
 
     log.info(f"  Dismissed: {len(to_dismiss)} jobs")
     return len(to_dismiss)

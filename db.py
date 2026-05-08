@@ -26,7 +26,8 @@ def init_db():
                 notes          TEXT DEFAULT '',
                 h1b_status     TEXT DEFAULT 'Unknown',
                 source         TEXT NOT NULL,
-                status         TEXT DEFAULT 'New'
+                status         TEXT DEFAULT 'New',
+                auto_dismissed INTEGER DEFAULT 1
             )
         """)
         # Add columns to existing databases that predate them
@@ -39,6 +40,18 @@ def init_db():
                 conn.execute(col_def)
             except Exception:
                 pass
+
+        # auto_dismissed: 1 = system-auto-dismissed (eligible for auto-promote on rescore),
+        # 0 = user-dismissed (treat as a deliberate decision; never auto-promote).
+        # On first migration, conservatively backfill every existing Dismissed row as
+        # user-dismissed — we can't tell which were which retroactively, and replaying
+        # the AEI auto-promote bug is worse than missing a few legitimate auto-promotes.
+        # PRAGMA-gate so the backfill runs exactly once (the older try/except: pass
+        # pattern would silently skip the backfill if the UPDATE failed for any reason).
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(jobs)").fetchall()}
+        if "auto_dismissed" not in cols:
+            conn.execute("ALTER TABLE jobs ADD COLUMN auto_dismissed INTEGER DEFAULT 1")
+            conn.execute("UPDATE jobs SET auto_dismissed=0 WHERE status='Dismissed'")
     print("Database initialized.")
 
 
@@ -62,7 +75,7 @@ def update_job(job_id, **fields):
     """Update any fields on a job by id. Example: update_job(3, status='Applied', notes='Great role')"""
     allowed = {"title", "company", "location", "salary", "url", "date_applied",
                "resume_version", "notes", "h1b_status", "source", "status",
-               "match_score", "matched_resume"}
+               "match_score", "matched_resume", "auto_dismissed"}
     updates = {k: v for k, v in fields.items() if k in allowed}
     if not updates:
         return
@@ -70,6 +83,13 @@ def update_job(job_id, **fields):
     values = list(updates.values()) + [job_id]
     with _connect() as conn:
         conn.execute(f"UPDATE jobs SET {cols} WHERE id = ?", values)
+
+
+def dismiss_job(job_id, by_user=False):
+    """Set status='Dismissed' and stamp auto_dismissed correctly.
+    All dismissal call sites must go through this helper so the
+    user-vs-system distinction stays consistent."""
+    update_job(job_id, status="Dismissed", auto_dismissed=0 if by_user else 1)
 
 
 def get_job(job_id):

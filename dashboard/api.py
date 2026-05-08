@@ -133,7 +133,16 @@ def update_job(job_id):
     if "status" in updates and updates["status"] not in db.STATUSES:
         abort(400, description=f"Invalid status. Choose from: {', '.join(db.STATUSES)}")
 
-    db.update_job(job_id, **updates)
+    # If the client is moving status -> Dismissed via PUT, route through the
+    # dismiss helper so auto_dismissed=0 (user decision). Other fields update
+    # normally.
+    if updates.get("status") == "Dismissed":
+        db.dismiss_job(job_id, by_user=True)
+        other = {k: v for k, v in updates.items() if k != "status"}
+        if other:
+            db.update_job(job_id, **other)
+    else:
+        db.update_job(job_id, **updates)
     return _ok(db.get_job(job_id), message="Job updated.")
 
 
@@ -150,7 +159,7 @@ def delete_job(job_id):
     if request.args.get("hard") == "1":
         db.delete_job(job_id)
         return _ok(message=f"Job {job_id} permanently deleted.")
-    db.update_job(job_id, status="Dismissed")
+    db.dismiss_job(job_id, by_user=True)
     return _ok(message=f"Job {job_id} dismissed.")
 
 
@@ -215,6 +224,10 @@ def generate_for_job(job_id):
         "body_ordering": result["body_ordering"],
         "used_passion_statement": result["used_passion_statement"],
         "changes_summary": result.get("changes_summary", []),
+        "ats_keywords": result.get("ats_keywords", []),
+        "resume_audit_notes": result.get("resume_audit_notes", []),
+        "cover_letter_audit_notes": result.get("cover_letter_audit_notes", []),
+        "jd_chars": result.get("jd_chars", 0),
         "resume_tightness": result.get("resume_tightness", 0),
         "cover_letter_tightness": result.get("cover_letter_tightness", 0),
         "cover_letter_preview": result["cover_letter_preview"],
